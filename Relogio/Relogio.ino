@@ -107,7 +107,7 @@ void setup() {
   azul = pixels.Color(0,0,255);
   verde = pixels.Color(0,255,0);
   vermelho = pixels.Color(255,0,0);
-  amarelo = pixels.Color(255,255,0);
+  amarelo = pixels.Color(255,120,0);
 
   //Alimentar array de cores
   cores[0] = azul;
@@ -116,10 +116,10 @@ void setup() {
   cores[3] = amarelo;
 
   //Alimentar o array de notas
-  sons[0] = 1200;
-  sons[1] = 1600;
-  sons[2] = 2000;
-  sons[3] = 2400;
+  sons[0] = 264;
+  sons[1] = 297;
+  sons[2] = 330;
+  sons[3] = 352;
 
   //Iniciar monitor serial
   Serial.begin(9600);
@@ -130,12 +130,24 @@ void setup() {
 // the loop routine runs over and over again forever:
 void loop() {
 
+int res_botao;
+
   if( isr_flag == 1 ) {
     Serial.println("Entrou");
     detachInterrupt(0);
     handleGesture();
     isr_flag = 0;
     attachInterrupt(0, interruptRoutine, FALLING);
+  }
+  else
+  {
+    res_botao = verifica_botao();
+
+    if(res_botao!=-1)
+    {
+      atualiza_hora();
+      acender_leds(cores[res_botao], 500);
+    }
   }
   
 }
@@ -146,11 +158,13 @@ void atualiza_hora()
   unsigned long time;
   time = millis();
   int somar;
+  unsigned long resto;
 
   unsigned long add;
   add = (time - start)/1000;
+  resto = (time - start)%1000;
 
-  start = time;
+  start = time - resto;
 
   //Alterar o horario do sistema
   segundo = segundo + add;
@@ -291,8 +305,7 @@ void handleGesture() {
       case DIR_NEAR:
       case DIR_FAR:
         Serial.println("Mostrar o horário");
-        atualiza_hora();
-        acender_leds(pixels.Color(0, 255, 0), 5000);
+        mostrar_horario();
         break;
     }
   }
@@ -322,7 +335,6 @@ void ativar_genius()
   //Conferir a entrada do usuario
   confereEntrada();
   lastPos = 0;
-  Serial.println("Saui do ConfereEntrada");
   
 }
 
@@ -331,6 +343,7 @@ void showGeniusSeq()
 
   for(int i=0; i<lastPos; i++)
   {
+    atualiza_hora();
     tone(saida_som, sons[genius_mem[i]]);
     acender_leds(cores[genius_mem[i]], 500);
     noTone(saida_som);
@@ -350,6 +363,7 @@ void confereEntrada()
     if(genius_mem[i] == le_botao())
     {
       //Se for igual, piscar a cor e passar para o próximo
+      atualiza_hora();
       tone(saida_som, sons[genius_mem[i]]);
       acender_leds(cores[genius_mem[i]], 500);
       noTone(saida_som);
@@ -358,6 +372,11 @@ void confereEntrada()
     else
     {
       //Senao, limpar o array e sair dos metodos
+      tone(saida_som, 392);
+      delay(250);
+      tone(saida_som, 262);
+      delay(500);
+      noTone(saida_som);
       break;
     }
   }
@@ -402,5 +421,48 @@ int le_botao()
   }
   
   return result;
+}
+
+//Método que faz a verificação do botão corrente
+int verifica_botao()
+{
+  int result = -1;
+
+  if (digitalRead(botao_azul) == LOW) 
+  {
+    result = 0;
+  }
+  else if (digitalRead(botao_verde) == LOW) 
+  {
+    result = 1;
+  }
+  else if (digitalRead(botao_vermelho) == LOW) 
+  {
+    result = 2;
+  }
+  else if (digitalRead(botao_amarelo) == LOW)
+  {
+    result = 3;
+  }
+
+ return result;
+}
+
+//Método para mostrar o horário durante 5 segundos
+void mostrar_horario()
+{
+  int i;
+  
+  //1) Sortear a cor
+  int cor1, cor2, cor3;
+  cor1 = random(256);
+  cor2 = random(256);
+  cor3 = random(256);
+
+  for(i = 0; i < 5; i++)
+  {
+      atualiza_hora();
+      acender_leds(pixels.Color(cor1, cor2, cor3), 1000);
+  }
 }
 
